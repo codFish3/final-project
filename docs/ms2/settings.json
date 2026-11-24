@@ -1,0 +1,74 @@
+[
+  {
+    "image": "ridges-overview.jpg",
+    "camera": "overview",
+    "settings": {
+      "seed": "2401",
+      "style": "shanghai",
+      "width": 7,
+      "scale": 1,
+      "complexity": 8,
+      "infield": 85,
+      "straight": 85,
+      "elevation": 18,
+      "terrain": 32,
+      "frequency": 0.004,
+      "octaves": 4,
+      "persistence": 0.5,
+      "terrainStyle": "ridges"
+    },
+    "length": 4925.833589978103,
+    "minRadius": 12.588613574562475,
+    "maxGrade": 0.13757811577582388,
+    "attempts": 1,
+    "fallback": false
+  },
+  {
+    "image": "mesas-overview.jpg",
+    "camera": "overview",
+    "settings": {
+      "seed": "2401",
+      "style": "shanghai",
+      "width": 7,
+      "scale": 1,
+      "complexity": 8,
+      "infield": 85,
+      "straight": 85,
+      "elevation": 18,
+      "terrain": 32,
+      "frequency": 0.004,
+      "octaves": 4,
+      "persistence": 0.5,
+      "terrainStyle": "mesas"
+    },
+    "length": 4925.833589978103,
+    "minRadius": 12.588613574562475,
+    "maxGrade": 0.13757811577582388,
+    "attempts": 1,
+    "fallback": false
+  },
+  {
+    "image": "ridges-follow.jpg",
+    "camera": "follow",
+    "settings": {
+      "complexity": 7,
+      "infield": 65,
+      "straight": 80,
+      "elevation": 24,
+      "terrain": 32,
+      "seed": "2026",
+      "style": "spa",
+      "width": 7,
+      "scale": 1,
+      "frequency": 0.004,
+      "octaves": 4,
+      "persistence": 0.5,
+      "terrainStyle": "ridges"
+    },
+    "length": 3122.854179073902,
+    "minRadius": 10.337662165699873,
+    "maxGrade": 0.13790784209347307,
+    "attempts": 1,
+    "fallback": false
+  }
+]
