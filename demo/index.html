@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Island Circuit — Procedural Track Lab</title>
+    <link rel="stylesheet" href="style.css?v=5" />
+  </head>
+  <body>
+    <aside>
+      <div class="intro">
+        <h1>Procedural Island Circuit</h1>
+      </div>
+      <form id="controls">
+        <div class="section-label">01 <span>SHAPE YOUR CIRCUIT</span></div>
+        <label for="seed">World seed</label>
+        <div class="seed-row">
+          <input id="seed" value="2401" maxlength="40" autocomplete="off" /><button
+            type="button"
+            id="shuffle"
+            title="Random seed"
+            aria-label="Random seed"
+          >
+            ↻
+          </button>
+        </div>
+        <label for="style">Circuit character</label
+        ><select id="style">
+          <option value="shanghai">Shanghai-inspired · technical</option>
+          <option value="spa">Spa-inspired · flowing hills</option>
+          <option value="silverstone">Silverstone-inspired · fast esses</option>
+        </select>
+        <label for="infield">Infield depth <output id="infield-out">85</output></label
+        ><input type="range" id="infield" min="35" max="100" value="85" />
+        <label for="straight">Straight stretch <output id="straight-out">85</output></label
+        ><input type="range" id="straight" min="15" max="100" value="85" />
+        <label for="elevation">Track elevation <output id="elevation-out">18</output></label
+        ><input type="range" id="elevation" min="0" max="50" value="18" />
+        <label for="terrain">Terrain relief <output id="terrain-out">32</output></label
+        ><input type="range" id="terrain" min="0" max="65" value="32" />
+        <label for="terrainStyle">Terrain character</label>
+        <select id="terrainStyle">
+          <option value="hills">Rolling hills</option>
+          <option value="ridges" selected>Mountain ridges</option>
+          <option value="mesas">Terraced mesas</option>
+          <option value="caldera">Volcanic caldera</option>
+        </select>
+        <label for="frequency">Noise frequency <output id="frequency-out">0.0040</output></label
+        ><input type="range" id="frequency" min=".001" max=".012" step=".0005" value=".004" />
+        <label for="octaves">Noise octaves <output id="octaves-out">4</output></label
+        ><input type="range" id="octaves" min="1" max="6" value="4" />
+        <label for="persistence">Noise roughness <output id="persistence-out">0.50</output></label
+        ><input type="range" id="persistence" min=".25" max=".8" step=".05" value=".5" />
+        <label for="complexity">Curve complexity <output id="complexity-out">8</output></label
+        ><input type="range" id="complexity" min="1" max="10" value="8" />
+        <label for="width">Road width <output id="width-out">7 m</output></label
+        ><input type="range" id="width" min="5" max="10" step=".5" value="7" />
+        <label for="scale">Island scale <output id="scale-out">1.0×</output></label
+        ><input type="range" id="scale" min=".8" max="1.4" step=".1" value="1" />
+        <button class="primary" type="submit">Generate circuit <span>↗</span></button>
+      </form>
+      <div class="section-label camera-label">02 <span>EXPLORE THE ISLAND</span></div>
+      <div class="modes">
+        <button id="overview" class="active">↗ Overview</button><button id="plan">⌖ Layout</button
+        ><button id="follow">▹ Follow lap</button>
+      </div>
+      <div class="switch-row">
+        <label for="debug">Show generation guides</label><input id="debug" type="checkbox" />
+      </div>
+      <div class="switch-row">
+        <label for="pause">Pause motion</label><input id="pause" type="checkbox" />
+      </div>
+      <label for="stage" class="stage-label">Generation stage</label>
+      <select id="stage">
+        <option value="complete">Complete scene</option>
+        <option value="layout">1 · Base layout</option>
+        <option value="deformation">2 · Seed deformation</option>
+        <option value="spline">3 · Spline sampling</option>
+        <option value="validation">4 · Validation</option>
+        <option value="mesh">5 · Road mesh</option>
+      </select>
+      <button id="show-examples" class="examples-button">View five examples</button>
+    </aside>
+    <main>
+      <canvas id="scene" aria-label="Interactive three dimensional island racetrack"></canvas>
+      <div class="topbar">
+        <span class="pill"><span class="dot"></span> LIVE GENERATOR</span
+        ><span class="top-title">ISLAND CIRCUIT <span>/</span> <b id="seed-label">2401</b></span
+        ><button id="save" class="save">↓ Save view</button>
+      </div>
+      <div class="view-title">
+        <span class="eyebrow">YOUR OWN LITTLE GRAND PRIX</span>
+        <h2 id="world-name">Emerald coast</h2>
+      </div>
+      <div class="map-card">
+        <div class="map-heading">CIRCUIT MAP <span id="map-mode">OVERVIEW</span></div>
+        <canvas id="map" width="420" height="280"></canvas>
+        <div class="map-caption">
+          <span class="dot orange"></span> LIVE LAP POSITION <b id="lap">0%</b>
+        </div>
+      </div>
+      <div class="bottom">
+        <div class="metrics">
+          <div>
+            <small>TRACK LENGTH</small><strong id="length">—<em>m</em></strong>
+          </div>
+          <div>
+            <small>MIN. TURN RADIUS</small><strong id="radius">—<em>m</em></strong>
+          </div>
+          <div>
+            <small>ELEVATION RANGE</small><strong id="relief">—<em>m</em></strong>
+          </div>
+          <div>
+            <small>GENERATION</small><strong id="time">—<em>ms</em></strong>
+          </div>
+        </div>
+        <div class="hint" id="hint">Drag to orbit · Scroll to zoom</div>
+      </div>
+      <div id="error" role="alert" hidden></div>
+      <div id="stage-info" class="stage-info" hidden></div>
+    </main>
+    <dialog id="examples-dialog" aria-labelledby="examples-title">
+      <div class="examples-heading">
+        <h2 id="examples-title">Generated circuits</h2>
+        <button id="close-examples" aria-label="Close examples">Close</button>
+      </div>
+      <p>Three Shanghai seeds share the same parameters. Select a circuit to explore it.</p>
+      <div id="examples-grid"></div>
+    </dialog>
+    <script type="module" src="app.js?v=6"></script>
+  </body>
+</html>

@@ -1,5 +1,6 @@
 import * as T from './vendor/three.module.js';
 import { createTerrainNoise } from './noise.js';
+import { createLandscape } from './landscape.js';
 
 export function random(seed) {
   let a = 2166136261;
@@ -204,17 +205,32 @@ export function generate({
   straight = 75,
   elevation = 12,
   terrain = 20,
+  terrainStyle = 'hills',
   frequency = 0.004,
   octaves = 4,
   persistence = 0.5,
 } = {}) {
   const noise = createTerrainNoise(seed, { frequency, octaves, persistence });
   const rng = random(seed);
+  // Coherent warps change whole corner sequences rather than adding point noise.
+  // Keeping these values fixed across retries preserves each seed's character.
+  const deformation = {
+    stretchX: 0.82 + rng() * 0.36,
+    stretchZ: 0.82 + rng() * 0.36,
+    shear: (rng() - 0.5) * 0.28,
+    bendX: 9 + rng() * 14,
+    bendZ: 9 + rng() * 14,
+    phaseX: rng() * Math.PI * 2,
+    phaseZ: rng() * Math.PI * 2,
+  };
   const N = 640;
+  const rejectedAttempts = [];
   let track;
   for (let attempt = 0; attempt <= 35; attempt++) {
     const fallback = attempt === 35;
     const base = layouts[style] || layouts.shanghai;
+    const warpStrength = Math.max(0.3, 1 - attempt * 0.035);
+    const layoutControls = [];
     const controls = base.map(([x, z], i) => {
       const angle = (i / base.length) * Math.PI * 2 - Math.PI;
       const mix = Math.max(0.15, infield / 100);
@@ -223,21 +239,34 @@ export function generate({
       // Preserve macro ordering; blend towards the macro layout to open infield folds.
       // Oval fallback is explicit and is never silently substituted as an accepted layout.
       if (fallback) {
-        return new T.Vector3(ox * scale * 1.8, 0, oz * scale * 1.8);
+        const p = new T.Vector3(ox * scale * 1.8, 0, oz * scale * 1.8);
+        layoutControls.push(p.clone());
+        return p;
       }
       const radial = Math.hypot(x, z);
       const push = (1 - mix) * Math.max(0, 110 - radial);
       const k = 1 + push / Math.max(radial, 25);
       const jitter = (rng() - 0.5) * 4 * Math.max(0.1, 1 - attempt * 0.05);
       const wave = (i % 2 ? 1 : -1) * (complexity - 5) * 1.2;
+      const bx = x * k;
+      const bz = z * k;
+      const sizing = scale * 2.3 * (1 + Math.floor(attempt / 7) * 0.12);
+      layoutControls.push(new T.Vector3(bx * (1 + straight / 160) * sizing, 0, bz * sizing));
+      const dx =
+        bx * (deformation.stretchX - 1) +
+        bz * deformation.shear +
+        deformation.bendX * Math.sin(bz / 90 + deformation.phaseX);
+      const dz =
+        bz * (deformation.stretchZ - 1) +
+        deformation.bendZ * Math.sin(bx / 85 + deformation.phaseZ);
       return new T.Vector3(
-        (x * k + jitter + wave) *
+        (bx + dx * warpStrength + jitter + wave) *
           (1 + straight / 160) *
           scale *
           2.3 *
           (1 + Math.floor(attempt / 7) * 0.12),
         0,
-        (z * k + jitter) * scale * 2.3 * (1 + Math.floor(attempt / 7) * 0.12)
+        (bz + dz * warpStrength + jitter) * scale * 2.3 * (1 + Math.floor(attempt / 7) * 0.12)
       );
     });
     const curve = new T.CatmullRomCurve3(controls, true, 'centripetal');
@@ -246,6 +275,7 @@ export function generate({
     const flat = curve.getSpacedPoints(N).slice(0, N);
     const report = validate(flat, width);
     if (!report.valid) {
+      rejectedAttempts.push({ attempt: attempt + 1, reason: report.reason });
       continue;
     }
     let heights = controls.map((p) => noise(p.x, p.z) * elevation * 2);
@@ -278,6 +308,7 @@ export function generate({
     const projected = points.map((p) => new T.Vector3(p.x, 0, p.z));
     const check = validate(projected, width);
     if (!check.valid) {
+      rejectedAttempts.push({ attempt: attempt + 1, reason: check.reason });
       continue;
     }
     const frames = points.map((p, i) => {
@@ -307,6 +338,9 @@ export function generate({
       points,
       frames,
       controls,
+      layoutControls,
+      rejectedAttempts,
+      deformation: { ...deformation, strength: fallback ? 0 : warpStrength },
       start,
       length: curve.getLength(),
       minRadius: check.minRadius,
@@ -317,6 +351,15 @@ export function generate({
       scale,
       style,
       terrain,
+      terrainStyle,
+      landscape: createLandscape(seed, {
+        terrainStyle,
+        terrain,
+        frequency,
+        octaves,
+        persistence,
+        footprintRadius: Math.max(...points.map((p) => Math.hypot(p.x, p.z))),
+      }),
       elevation,
       noise,
       frequency,
@@ -361,12 +404,11 @@ export function distanceToTrack(p, track) {
 
 export function groundHeight(x, z, track) {
   const near = nearestTrack({ x, z }, track);
-  const blend = T.MathUtils.smoothstep(near.distance, track.width / 2 + 7, track.width / 2 + 28);
-  return (
-    T.MathUtils.lerp(
-      near.height - 1.2,
-      5 + (0.5 + 0.5 * track.noise(x, z)) * track.terrain * 2.5,
-      blend
-    ) - 0.18
-  );
+  const roadbed = near.height - 0.3;
+  const natural = track.landscape.heightAt(x, z);
+  const shoulder = track.width / 2 + 7;
+  // Keep a safe road corridor without flattening the whole infield at high relief.
+  const transition = T.MathUtils.clamp(18 + Math.abs(natural - roadbed) * 0.25, 28, 48);
+  const blend = T.MathUtils.smoothstep(near.distance, shoulder, shoulder + transition);
+  return T.MathUtils.lerp(roadbed, natural, blend);
 }

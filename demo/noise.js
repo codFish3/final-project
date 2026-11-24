@@ -1,4 +1,5 @@
-
+// Seeded 2D gradient noise with quintic interpolation, composed as normalized fBm.
+// Integer-coordinate hashing avoids a small repeating permutation-table period.
 function seedHash(seed) {
   let h = 2166136261;
   for (const c of String(seed)) {
@@ -77,7 +78,7 @@ export function createTerrainNoise(
     let amplitude = 1;
     let f = frequency;
     for (let i = 0; i < layers.length; i++) {
-      
+      // Rotate successive octaves to reduce alignment of features with the grid.
       const { sample, c, s } = layers[i];
       sum += amplitude * sample((x * c - z * s) * f + 19.37, (x * s + z * c) * f - 8.19);
       weight += amplitude;

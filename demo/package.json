@@ -1,0 +1,9 @@
+{
+  "name": "procedural-island-circuit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test.mjs && node landscape-test.mjs && node terrain-test.mjs",
+    "start": "python3 -m http.server 5660 --bind 127.0.0.1"
+  }
+}
